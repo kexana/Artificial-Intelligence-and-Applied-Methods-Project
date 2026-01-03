@@ -6,9 +6,7 @@ from PIL import Image
 import torch
 from diffusers import UNet2DModel, DDPMScheduler
 
-# -------------------------
-# CONFIG (MUST MATCH TRAINING)
-# -------------------------
+#config setup, match it to training
 BASE_DIR = Path(__file__).parent
 IMAGE_SIZE = 128
 DIFFUSION_STEPS = 12
@@ -17,9 +15,7 @@ USE_RGBA = False
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-# -------------------------
-# UTILITIES
-# -------------------------
+#util functions
 def img_to_tensor(img):
     arr = np.array(img).astype(np.float32)
     if USE_RGBA:
@@ -37,9 +33,7 @@ def tensor_to_img(t):
     return Image.fromarray(t, mode)
 
 
-# -------------------------
-# MODEL
-# -------------------------
+#setup model
 def load_model(checkpoint_path):
     in_ch = 9 if not USE_RGBA else 12
     out_ch = 3 if not USE_RGBA else 4
@@ -69,9 +63,7 @@ def load_model(checkpoint_path):
     return model
 
 
-# -------------------------
-# DIFFUSION INFERENCE
-# -------------------------
+#main inference
 @torch.no_grad()
 def generate_mid(model, frame_a, frame_b):
     scheduler = DDPMScheduler(
@@ -90,9 +82,6 @@ def generate_mid(model, frame_a, frame_b):
     return sample
 
 
-# -------------------------
-# MAIN
-# -------------------------
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint", required=True)

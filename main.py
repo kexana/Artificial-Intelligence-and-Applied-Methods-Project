@@ -12,26 +12,22 @@ from torch.utils.data import Dataset, DataLoader
 from diffusers import UNet2DModel, DDPMScheduler
 from accelerate import Accelerator
 
-# -------------------------
-# CONFIG
-# -------------------------
+#train configs
 DATASET_ROOT = "dataset"
 OUTPUT_DIR = "checkpoints"
 IMAGE_SIZE = 128
 BATCH_SIZE = 16
 EPOCHS = 2 #50
 LR = 2e-4
-DIFFUSION_STEPS = 12   # VERY IMPORTANT for pixel art
-SAVE_EVERY = 5
-USE_RGBA = False      # RGB is usually enough
+DIFFUSION_STEPS = 12  
+SAVE_EVERY = 2
+USE_RGBA = False    
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# -------------------------
-# UTILITIES
-# -------------------------
+#convert an input image
 def img_to_tensor(img):
     arr = np.array(img).astype(np.float32)
     if USE_RGBA:
@@ -42,9 +38,7 @@ def img_to_tensor(img):
         return torch.from_numpy(rgb).permute(2, 0, 1)
 
 
-# -------------------------
-# DATASET
-# -------------------------
+#extract formated data from the dataset 
 class SpriteTripletDataset(Dataset):
     def __init__(self, root):
         self.triplets = []
@@ -81,12 +75,11 @@ class SpriteTripletDataset(Dataset):
         }
 
 def main():
-    # -------------------------
-    # MODEL
-    # -------------------------
+    #main model setup
     IN_CHANNELS = 9 if not USE_RGBA else 12
     OUT_CHANNELS = 3 if not USE_RGBA else 4
 
+    #unet mainly because 2D and output is size consistent with input
     model = UNet2DModel(
         sample_size=IMAGE_SIZE,
         in_channels=IN_CHANNELS,
@@ -105,17 +98,13 @@ def main():
         ),
     )
 
-    # -------------------------
-    # DIFFUSION
-    # -------------------------
+    #diffusion
     scheduler = DDPMScheduler(
         num_train_timesteps=DIFFUSION_STEPS,
         beta_schedule="squaredcos_cap_v2"
     )
 
-    # -------------------------
-    # TRAIN SETUP
-    # -------------------------
+    #training
     dataset = SpriteTripletDataset(DATASET_ROOT)
     loader = DataLoader(
         dataset,
@@ -132,9 +121,7 @@ def main():
         model, optimizer, loader
     )
 
-    # -------------------------
-    # TRAIN LOOP
-    # -------------------------
+    #main training loop
     global_step = 0
 
     for epoch in range(EPOCHS):
@@ -169,9 +156,7 @@ def main():
             global_step += 1
             progress.set_postfix(loss=loss.item())
 
-        # -------------------------
-        # SAVE CHECKPOINT
-        # -------------------------
+        #save the checkpoint
         if (epoch + 1) % SAVE_EVERY == 0:
             accelerator.wait_for_everyone()
             unwrapped = accelerator.unwrap_model(model)
